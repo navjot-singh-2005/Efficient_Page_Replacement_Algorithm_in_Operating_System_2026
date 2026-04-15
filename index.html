@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Efficient — Page Replacement Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="bg-mesh"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+<canvas id="gridCanvas"></canvas>
+
+<header class="site-header" id="siteHeader">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.25"/></svg></div>
+      <span class="logo-name">Efficient</span>
+      <span class="logo-pill">v2.0</span>
+    </div>
+    <nav class="header-nav">
+      <a href="#hero" class="nav-link active">Home</a>
+      <a href="#theory" class="nav-link">Theory</a>
+      <a href="#simulator" class="nav-link">Simulator</a>
+      <a href="#compare" class="nav-link">Compare</a>
+    </nav>
+    <div class="live-badge"><span class="live-dot"></span>Interactive</div>
+  </div>
+</header>
+
+<section class="hero" id="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-chips">
+        <span class="chip">OS Memory Management</span>
+        <span class="chip chip-outline">FIFO · LRU · Optimal</span>
+      </div>
+      <h1 class="hero-title">Page<br/><em>Replacement</em><br/>Simulator</h1>
+      <p class="hero-desc">Explore how operating systems decide which memory pages to evict. Step through algorithms frame-by-frame with live metrics and visual traces.</p>
+      <div class="hero-btns">
+        <a href="#simulator" class="btn-primary">Launch Simulator <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M8 3L12 7L8 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="#theory" class="btn-ghost">Learn Theory</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hs-item"><span class="hs-num">3</span><span class="hs-lbl">Algorithms</span></div>
+        <div class="hs-sep"></div>
+        <div class="hs-item"><span class="hs-num">7</span><span class="hs-lbl">Max Frames</span></div>
+        <div class="hs-sep"></div>
+        <div class="hs-item"><span class="hs-num" id="totalStepsRun">0</span><span class="hs-lbl">Steps Run</span></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-viz-card">
+        <div class="hvc-header"><span class="hvc-label">Memory Frames</span><span class="hvc-algo" id="hvcAlgo">FIFO</span></div>
+        <div class="hvc-frames" id="hvcFrames"></div>
+        <div class="hvc-ref-label">Reference Queue</div>
+        <div class="hvc-queue" id="hvcQueue"></div>
+        <div class="hvc-footer">
+          <div class="hvc-metric"><span class="hvc-m-val fault-c" id="hvcFaults">0</span><span class="hvc-m-lbl">Faults</span></div>
+          <div class="hvc-metric"><span class="hvc-m-val hit-c" id="hvcHits">0</span><span class="hvc-m-lbl">Hits</span></div>
+          <div class="hvc-metric"><span class="hvc-m-val" id="hvcRatio">—</span><span class="hvc-m-lbl">Hit Ratio</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="theory-section" id="theory">
+  <div class="section-wrap">
+    <div class="section-head">
+      <div class="stag">Background Theory</div>
+      <h2 class="shead">How Page Replacement Works</h2>
+      <p class="ssub">When physical memory is full and a new page is needed, the OS must evict a page. The algorithm choice dramatically affects performance.</p>
+    </div>
+    <div class="theory-cards">
+      <div class="tc tc-fifo" onclick="openTheory('fifo')" onmouseenter="showPreview('FIFO')" onmouseleave="hidePreview()">
+        <div class="tc-glow"></div>
+        <div class="tc-top"><span class="tc-badge badge-fifo">FIFO</span><span class="tc-arrow">↗</span></div>
+        <h3 class="tc-title">First In First Out</h3>
+        <p class="tc-desc">Maintains a strict queue. The oldest loaded page is always the next victim regardless of usage frequency.</p>
+        <div class="tc-tags"><span class="tctag">O(1)</span><span class="tctag warn">Bélády's Anomaly</span><span class="tctag">Queue-based</span></div>
+        <div class="tc-trace"><span class="tt-lbl">Trace (3 frames):</span><div class="tt-row"><span class="tt f">1↓</span><span class="tt f">2↓</span><span class="tt f">3↓</span><span class="tt f">4↓</span><span class="tt h">1✓</span><span class="tt h">2✓</span><span class="tt f">5↓</span></div></div>
+      </div>
+      <div class="tc tc-lru" onclick="openTheory('lru')" onmouseenter="showPreview('LRU')" onmouseleave="hidePreview()">
+        <div class="tc-glow"></div>
+        <div class="tc-top"><span class="tc-badge badge-lru">LRU</span><span class="tc-arrow">↗</span></div>
+        <h3 class="tc-title">Least Recently Used</h3>
+        <p class="tc-desc">Tracks access recency. The page unused for the longest time is evicted — exploiting temporal locality of memory access.</p>
+        <div class="tc-tags"><span class="tctag">Temporal locality</span><span class="tctag good">No Bélády's</span><span class="tctag">HW support</span></div>
+        <div class="tc-trace"><span class="tt-lbl">Trace (3 frames):</span><div class="tt-row"><span class="tt f">1↓</span><span class="tt f">2↓</span><span class="tt f">3↓</span><span class="tt h">1✓</span><span class="tt f">4↓</span><span class="tt h">2✓</span><span class="tt f">5↓</span></div></div>
+      </div>
+      <div class="tc tc-opt" onclick="openTheory('opt')" onmouseenter="showPreview('OPT')" onmouseleave="hidePreview()">
+        <div class="tc-glow"></div>
+        <div class="tc-top"><span class="tc-badge badge-opt">OPT</span><span class="tc-arrow">↗</span></div>
+        <h3 class="tc-title">Optimal (Bélády's)</h3>
+        <p class="tc-desc">Requires future knowledge to evict the page needed farthest ahead. Theoretical minimum faults — the benchmark all others are measured against.</p>
+        <div class="tc-tags"><span class="tctag good">Min faults</span><span class="tctag good">No Bélády's</span><span class="tctag warn">Not real-world</span></div>
+        <div class="tc-trace"><span class="tt-lbl">Trace (3 frames):</span><div class="tt-row"><span class="tt f">1↓</span><span class="tt f">2↓</span><span class="tt f">3↓</span><span class="tt h">1✓</span><span class="tt h">2✓</span><span class="tt f">4↓</span><span class="tt f">5↓</span></div></div>
+      </div>
+    </div>
+    <div class="cmp-table-wrap">
+      <table class="cmp-table">
+        <thead><tr><th>Property</th><th class="col-f">FIFO</th><th class="col-l">LRU</th><th class="col-o">OPT</th></tr></thead>
+        <tbody>
+          <tr><td>Bélády's Anomaly</td><td class="bad">Yes ⚠</td><td class="good">No ✓</td><td class="good">No ✓</td></tr>
+          <tr><td>Implementation</td><td class="good">Simple</td><td class="mid">Moderate</td><td class="bad">Impractical</td></tr>
+          <tr><td>Avg Page Faults</td><td class="mid">Medium</td><td class="good">Low</td><td class="good">Minimum</td></tr>
+          <tr><td>Real-world use</td><td class="good">Yes</td><td class="good">Approximated</td><td class="bad">No</td></tr>
+          <tr><td>Per-op overhead</td><td class="good">O(1)</td><td class="mid">O(n)</td><td class="bad">Needs future refs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="simulator-section" id="simulator">
+  <div class="section-wrap">
+    <div class="section-head">
+      <div class="stag">Interactive Simulator</div>
+      <h2 class="shead">Configure & Simulate</h2>
+    </div>
+    <div class="sim-layout">
+      <aside class="config-panel">
+        <div class="cp-block">
+          <div class="cp-lbl">Reference String</div>
+          <div class="cp-input-row">
+            <input id="refString" class="cp-input" type="text" value="7 0 1 2 0 3 0 4 2 3 0 3 2"/>
+            <button class="cp-rnd" onclick="generateRandom()" title="Random">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 4.5H8L10 2L12 4.5H10C10 7.8 6.5 9.5 3.5 9.5M1.5 8.5L4 11M1.5 8.5L4 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <span class="cp-hint">Space-separated page numbers 0–9</span>
+        </div>
+
+        <div class="cp-block">
+          <div class="cp-lbl">Frames: <strong id="framesVal">3</strong></div>
+          <div class="frames-ctrl">
+            <button class="fc-btn" onclick="adjustFrames(-1)">−</button>
+            <input type="range" id="framesRange" min="1" max="7" value="3" class="fc-range" oninput="syncFrames(this.value)"/>
+            <button class="fc-btn" onclick="adjustFrames(1)">+</button>
+          </div>
+          <div class="fc-pips" id="fcPips"></div>
+          <span class="cp-hint">1 – 7 frames</span>
+        </div>
+
+        <div class="cp-block">
+          <div class="cp-lbl">Algorithm</div>
+          <div class="algo-group">
+            <button class="ag-btn active" data-algo="FIFO" onclick="selectAlgo('FIFO',this)"><span class="ag-tag">FIFO</span><span class="ag-name">First In First Out</span></button>
+            <button class="ag-btn" data-algo="LRU" onclick="selectAlgo('LRU',this)"><span class="ag-tag">LRU</span><span class="ag-name">Least Recently Used</span></button>
+            <button class="ag-btn" data-algo="OPT" onclick="selectAlgo('OPT',this)"><span class="ag-tag">OPT</span><span class="ag-name">Optimal (Bélády)</span></button>
+          </div>
+        </div>
+
+        <div class="cp-block">
+          <div class="cp-lbl">Speed</div>
+          <div class="speed-row">
+            <span class="sp-lbl">Slow</span>
+            <input type="range" id="speedRange" min="200" max="1600" value="800" step="100" class="fc-range"/>
+            <span class="sp-lbl">Fast</span>
+          </div>
+        </div>
+
+        <div class="sim-btns">
+          <button class="sb-run" id="runBtn" onclick="runSimulation()"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1.5L10 6L2 10.5V1.5Z" fill="currentColor"/></svg> Run</button>
+          <button class="sb-step" onclick="stepSimulation()">Step <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6H9M6.5 3.5L9 6L6.5 8.5M11 1V11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="sb-reset" onclick="resetSimulation()">↺</button>
+        </div>
+
+        <div class="metrics-panel">
+          <div class="mp-title">Metrics</div>
+          <div class="mp-grid">
+            <div class="mp-box"><span class="mp-val fault-c" id="mpFaults">—</span><span class="mp-lbl">Faults</span></div>
+            <div class="mp-box"><span class="mp-val hit-c" id="mpHits">—</span><span class="mp-lbl">Hits</span></div>
+            <div class="mp-box"><span class="mp-val" id="mpRate">—</span><span class="mp-lbl">Fault %</span></div>
+            <div class="mp-box"><span class="mp-val" id="mpRatio">—</span><span class="mp-lbl">Hit %</span></div>
+          </div>
+          <div class="mp-bar-wrap"><div class="mp-bar-bg"><div class="mp-bar-fill" id="mpBarFill" style="width:0%"></div></div></div>
+        </div>
+      </aside>
+
+      <div class="viz-panel">
+        <div class="step-banner" id="stepBanner">
+          <div class="sb-content idle">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2V7.5L10.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1.2"/></svg>
+            Configure settings and press Run
+          </div>
+        </div>
+
+        <div class="ref-display" id="refDisplay">
+          <div class="rd-label">Reference String</div>
+          <div class="rd-cells" id="rdCells"></div>
+        </div>
+
+        <div class="frames-viz-wrap" id="framesVizWrap">
+          <div class="fvw-header">
+            <span class="fvw-lbl">Memory Frames — step by step</span>
+            <span class="fvw-algo" id="fvwAlgo"></span>
+          </div>
+          <div class="fvw-scroll"><div id="fvwTable"></div></div>
+        </div>
+
+        <div class="log-panel">
+          <div class="lp-header">
+            <span class="lp-title">Event Log</span>
+            <div class="lp-badges">
+              <span class="lp-badge fault-badge" id="lpFaultCount">0 faults</span>
+              <span class="lp-badge hit-badge" id="lpHitCount">0 hits</span>
+            </div>
+            <button class="lp-clear" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="lp-body" id="lpBody">
+            <div class="lp-empty">Simulation events will appear here…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="compare-section" id="compare">
+  <div class="section-wrap">
+    <div class="section-head">
+      <div class="stag">Side-by-Side Analysis</div>
+      <h2 class="shead">Compare All Algorithms</h2>
+      <p class="ssub">Run FIFO, LRU, and Optimal simultaneously on the same input. See exactly how they differ in page fault count and hit ratio.</p>
+    </div>
+    <div class="compare-launch">
+      <button class="btn-compare" onclick="runComparison()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 7L2 12V2Z" fill="currentColor"/></svg> Compare All</button>
+      <span class="cmp-hint" id="cmpHint">Using current ref string &amp; frame count</span>
+    </div>
+    <div class="compare-cards" id="compareCards"></div>
+    <div class="chart-area" id="chartArea" style="display:none">
+      <div class="ca-label">Cumulative Page Faults</div>
+      <canvas id="compareChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo-icon"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.25"/></svg></div>
+      <span>Efficient</span>
+    </div>
+    <span class="footer-copy">Page Replacement Simulator · FIFO · LRU · Optimal</span>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeTheory()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeTheory()"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1L10 10M10 1L1 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="algorithms.js"></script>
+<script src="simulator.js"></script>
+<div id="hoverPreview" class="hover-preview hidden">
+  <div id="previewTitle"></div>
+  <div id="previewFrames"></div>
+</div>
+</body>
+</html>
